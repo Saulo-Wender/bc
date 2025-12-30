@@ -1,80 +1,87 @@
 # reports.py
-import random
+import pygame
+import matplotlib
 import matplotlib.pyplot as plt
-from economy_state import EstadoEconomia # Para criar instâncias temporárias
+import io
 
-# Importar as funções de economy_mechanics que agora definem ALVOS
+# Configura o backend para 'Agg' (não-interativo, para gerar imagens)
+matplotlib.use("Agg") 
+
+from economy_state import EstadoEconomia
 from economy_mechanics import (
-    atualizar_inflacao, # Continua com o nome original aqui, mas define estado.alvo_inflacao_mensal
-    atualizar_pib,      # Define estado.alvo_pib_crescimento_mensal
-    atualizar_cambio,   # Define estado.alvo_cambio_atual
-    atualizar_desemprego, # Esta já atualiza o estado diretamente de forma suave
-    atualizar_expectativa_juros_longo_prazo, # Atualiza o estado diretamente
-    atualizar_divida_publica, # Atualiza o estado diretamente
-    atualizar_fator_liquidez_bancaria # Atualiza o estado diretamente
+    atualizar_inflacao, atualizar_pib, atualizar_cambio,
+    atualizar_desemprego, atualizar_expectativa_juros_longo_prazo,
+    atualizar_divida_publica, atualizar_fator_liquidez_bancaria
 )
 
-# Constantes de ajuste para a simulação (podem ser importadas ou passadas como argumento no futuro)
+# Constantes de simulação (mantidas)
 PASSO_AJUSTE_INFLACAO_MENSAL_SIM = 0.00060
 PASSO_AJUSTE_PIB_MENSAL_SIM = 0.00015
 PASSO_AJUSTE_CAMBIO_SIM = 0.035
 
-def exibir_graficos_matplotlib(estado):
-    # ... (função como na última versão completa, sem alterações aqui) ...
+def gerar_surface_graficos(estado):
+    """
+    Gera uma Surface do Pygame contendo os gráficos do Matplotlib.
+    Não bloqueia o jogo e não abre nova janela.
+    """
     if not estado.historico_inflacao or len(estado.historico_inflacao) < 2:
-        print("DEBUG: Dados insuficientes para gerar graficos (chamada a exibir_graficos_matplotlib).")
-        return
+        return None
+
     meses = range(len(estado.historico_inflacao))
+    
+    # Define o estilo e tamanho da figura (em polegadas)
+    # DPI 100 com size 12x8 gera uma imagem de 1200x800 aprox
     plt.style.use('seaborn-v0_8-darkgrid')
-    fig, axs = plt.subplots(4, 2, figsize=(16, 22)) 
-    fig.suptitle('Desempenho Economico e Fiscal do Mandato', fontsize=18, y=0.99)
-    axs[0, 0].plot(meses, estado.historico_inflacao, label='Inflacao Anualizada (%)', color='red', marker='o', markersize=4, linestyle='-')
-    axs[0, 0].axhline(y=estado.meta_inflacao_anual, color='gray', linestyle='--', label=f'Meta ({estado.meta_inflacao_anual:.1f}%)')
-    axs[0, 0].axhspan(estado.meta_inflacao_anual - estado.banda_inflacao_original, estado.meta_inflacao_anual + estado.banda_inflacao_original, color='lightgreen', alpha=0.3, label=f'Banda Original (+/-{estado.banda_inflacao_original:.1f}%)')
-    if estado.banda_inflacao_anual != estado.banda_inflacao_original: 
-        axs[0, 0].axhspan(estado.meta_inflacao_anual - estado.banda_inflacao_anual, estado.meta_inflacao_anual + estado.banda_inflacao_anual, color='lightcoral', alpha=0.2, label=f'Banda Flex. Atual (+/-{estado.banda_inflacao_anual:.1f}%)')
-    axs[0, 0].set_title('Inflacao Anualizada (%)'); axs[0, 0].set_xlabel('Meses de Mandato'); axs[0, 0].set_ylabel('% a.a.'); axs[0, 0].legend(fontsize='small'); axs[0, 0].grid(True, linestyle=':', alpha=0.7)
-    axs[0, 1].plot(meses, estado.historico_pib, label='PIB Crescimento Anualizado (%)', color='blue', marker='s', markersize=4, linestyle='-')
-    axs[0, 1].axhline(y=estado.meta_pib_anual, color='gray', linestyle='--', label=f'Meta ({estado.meta_pib_anual:.1f}%)')
-    axs[0, 1].axhspan(estado.meta_pib_anual - estado.banda_pib_anual, estado.meta_pib_anual + estado.banda_pib_anual, color='lightblue', alpha=0.3, label=f'Banda Meta (+/-{estado.banda_pib_anual:.1f}%)')
-    axs[0, 1].axhline(y=0, color='black', linestyle='-', linewidth=0.5) 
-    axs[0, 1].set_title('PIB Crescimento Anualizado (%)'); axs[0, 1].set_xlabel('Meses de Mandato'); axs[0, 1].set_ylabel('% a.a.'); axs[0, 1].legend(fontsize='small'); axs[0, 1].grid(True, linestyle=':', alpha=0.7)
-    axs[1, 0].plot(meses, estado.historico_selic, label='SELIC Anualizada (%)', color='purple', marker='^', markersize=4, linestyle='-')
-    if estado.historico_juros_longo_prazo and len(estado.historico_juros_longo_prazo) == len(meses):
-        axs[1, 0].plot(meses, estado.historico_juros_longo_prazo, label='Exp. Juros Longos Anual. (%)', color='cyan', marker='D', markersize=4, linestyle='--')
-    axs[1, 0].set_title('Taxas de Juros Anualizadas (%)'); axs[1, 0].set_xlabel('Meses de Mandato'); axs[1, 0].set_ylabel('% a.a.'); axs[1, 0].legend(fontsize='small'); axs[1, 0].grid(True, linestyle=':', alpha=0.7)
-    if estado.historico_divida_pib and len(estado.historico_divida_pib) == len(meses):
-        axs[1, 1].plot(meses, estado.historico_divida_pib, label='Dívida/PIB (%)', color='black', marker='P', markersize=4, linestyle='-')
-        axs[1, 1].axhline(y=75, color='red', linestyle=':', label='Nível Alerta (75%)', alpha=0.8); axs[1, 1].axhline(y=60, color='green', linestyle=':', label='Nível Confortável (60%)', alpha=0.8)
-    axs[1, 1].set_title('Dívida Pública / PIB (%)'); axs[1, 1].set_xlabel('Meses de Mandato'); axs[1, 1].set_ylabel('% do PIB')
-    if estado.historico_divida_pib: axs[1, 1].set_ylim(bottom=max(0, min(estado.historico_divida_pib or [30]) - 10)) 
-    axs[1, 1].legend(fontsize='small'); axs[1, 1].grid(True, linestyle=':', alpha=0.7)
-    axs[2, 0].plot(meses, estado.historico_credibilidade, label='Credibilidade BC', color='green', marker='P', markersize=4, linestyle='-')
-    axs[2, 0].plot(meses, estado.historico_pressao_politica, label='Pressao Politica', color='orange', marker='X', markersize=4, linestyle='-')
-    axs[2, 0].axhline(y=50, color='gray', linestyle=':', label='Referencia 50pts', alpha=0.7)
-    axs[2, 0].set_title('Indicadores de Governanca'); axs[2, 0].set_xlabel('Meses de Mandato'); axs[2, 0].set_ylabel('Pontos (0-100)'); axs[2, 0].set_ylim(-10, 110); axs[2, 0].legend(fontsize='small'); axs[2, 0].grid(True, linestyle=':', alpha=0.7)
-    axs[2, 1].plot(meses, estado.historico_cambio, label='Cambio (R$/US$)', color='brown', marker='d', markersize=4, linestyle='-')
-    axs[2, 1].set_title('Taxa de Cambio (R$/US$)'); axs[2, 1].set_xlabel('Meses de Mandato'); axs[2, 1].set_ylabel('R$/US$')
-    if estado.historico_cambio: axs[2, 1].set_ylim(bottom=max(0, min(estado.historico_cambio or [3.0]) - 0.5)) 
-    axs[2, 1].legend(fontsize='small'); axs[2, 1].grid(True, linestyle=':', alpha=0.7)
-    axs[3, 0].plot(meses, estado.historico_desemprego, label='Desemprego (%)', color='teal', marker='v', markersize=4, linestyle='-')
-    axs[3, 0].set_title('Taxa de Desemprego (%)'); axs[3, 0].set_xlabel('Meses de Mandato'); axs[3, 0].set_ylabel('% da Forca de Trabalho'); axs[3, 0].set_ylim(bottom=0); axs[3, 0].legend(fontsize='small'); axs[3, 0].grid(True, linestyle=':', alpha=0.7)
-    if (estado.historico_compulsorio and len(estado.historico_compulsorio) == len(meses) and estado.historico_expectativa_inflacao and len(estado.historico_expectativa_inflacao) == len(meses)):
-        ax_comp = axs[3, 1]; line_comp, = ax_comp.plot(meses, estado.historico_compulsorio, label='Dep. Compulsorio (%)', color='magenta', marker='H', markersize=4, linestyle='-')
-        ax_comp.set_title('Compulsorio e Exp. Inflacao Mercado'); ax_comp.set_xlabel('Meses de Mandato'); ax_comp.set_ylabel('Compulsorio (%)', color='magenta'); ax_comp.tick_params(axis='y', labelcolor='magenta'); ax_comp.set_ylim(0, max(50, max(estado.historico_compulsorio or [50]))) 
-        ax_exp_inf = ax_comp.twinx(); line_exp_inf, = ax_exp_inf.plot(meses, estado.historico_expectativa_inflacao, label='Exp. Infl. Mercado (Anual. %)', color='lime', linestyle=':', marker='*', markersize=5)
-        ax_exp_inf.set_ylabel('Exp. Inflacao (% a.a.)', color='lime'); ax_exp_inf.tick_params(axis='y', labelcolor='lime'); ax_exp_inf.set_ylim(bottom=min(0, min(estado.historico_expectativa_inflacao or [0])-1), top=max(estado.historico_expectativa_inflacao or [10])+2)
-        lines = [line_comp, line_exp_inf]; ax_comp.legend(lines, [l.get_label() for l in lines], loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize='small'); ax_comp.grid(True, linestyle=':', alpha=0.7) 
-    elif estado.historico_expectativa_inflacao and len(estado.historico_expectativa_inflacao) == len(meses) and estado.historico_inflacao and len(estado.historico_inflacao) == len(meses): 
-        axs[3,1].plot(meses, estado.historico_expectativa_inflacao, label='Exp. Infl. Mercado (Anual %)', color='magenta', linestyle=':', marker='*'); axs[3,1].plot(meses, estado.historico_inflacao, label='Inflacao Real (%)', color='red', linestyle=':', alpha=0.7)
-        axs[3,1].set_title('Expectativa de Inflacao do Mercado'); axs[3,1].set_xlabel('Meses de Mandato'); axs[3,1].set_ylabel('% a.a.'); axs[3,1].legend(fontsize='small'); axs[3,1].grid(True, linestyle=':', alpha=0.7)
-    else: 
-        axs[3,1].text(0.5, 0.5, "Dados insuficientes para este gráfico", horizontalalignment='center', verticalalignment='center', transform=axs[3,1].transAxes); axs[3,1].set_title('Outros Indicadores')
-    plt.tight_layout(rect=[0, 0.03, 1, 0.97]); plt.show(block=True)
+    fig, axs = plt.subplots(2, 2, figsize=(10, 6)) # Reduzi para 2x2 para caber melhor na tela, ou ajuste conforme necessario
+    # Se quiser todos os 8 gráficos, precisará de uma superficie maior ou paginação.
+    # Vamos focar nos 4 principais por enquanto para teste de performance.
+    
+    fig.suptitle('Principais Indicadores Econômicos', fontsize=14)
 
+    # Gráfico 1: Inflação
+    axs[0, 0].plot(meses, estado.historico_inflacao, color='red', marker='o', markersize=3)
+    axs[0, 0].axhline(y=estado.meta_inflacao_anual, color='gray', linestyle='--')
+    axs[0, 0].set_title('Inflação Anualizada (%)', fontsize=10)
+    axs[0, 0].grid(True, alpha=0.5)
 
-# --- FUNÇÃO MODIFICADA ---
+    # Gráfico 2: PIB
+    axs[0, 1].plot(meses, estado.historico_pib, color='blue', marker='s', markersize=3)
+    axs[0, 1].axhline(y=estado.meta_pib_anual, color='gray', linestyle='--')
+    axs[0, 1].set_title('Crescimento PIB (%)', fontsize=10)
+    axs[0, 1].grid(True, alpha=0.5)
+
+    # Gráfico 3: Juros (SELIC)
+    axs[1, 0].plot(meses, estado.historico_selic, color='purple', marker='^', markersize=3)
+    axs[1, 0].set_title('Taxa SELIC (%)', fontsize=10)
+    axs[1, 0].grid(True, alpha=0.5)
+
+    # Gráfico 4: Câmbio
+    axs[1, 1].plot(meses, estado.historico_cambio, color='green', marker='d', markersize=3)
+    axs[1, 1].set_title('Câmbio (R$/US$)', fontsize=10)
+    axs[1, 1].grid(True, alpha=0.5)
+
+    plt.tight_layout()
+
+    # Salva o gráfico em um buffer de memória
+    canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    raw_data = renderer.tostring_rgb()
+    size = canvas.get_width_height()
+
+    # Fecha a figura para liberar memória
+    plt.close(fig)
+
+    # Converte para Surface do Pygame
+    surf = pygame.image.fromstring(raw_data, size, "RGB")
+    return surf
+
+# ... (Mantenha as funções gerar_relatorio_previsao_data e evaluate_performance_final originais abaixo, elas não precisam mudar agora) ...
+# RECOPIAR O RESTO DO ARQUIVO reports.py ORIGINAL A PARTIR DAQUI (gerar_relatorio_previsao_data, etc)
+# Se precisar, eu reescrevo o arquivo todo, mas a mudança principal é substituir exibir_graficos_matplotlib por gerar_surface_graficos
 def gerar_relatorio_previsao_data(estado_atual_real):
+    # (Copie o código original desta função aqui, sem alterações)
+    # ... código original ...
     estado_sim = EstadoEconomia() 
     attrs_to_copy = [
         'inflacao_atual_mensal', 'pib_crescimento_atual_mensal', 'selic_anual',
@@ -88,7 +95,6 @@ def gerar_relatorio_previsao_data(estado_atual_real):
         'ano_atual', 'mes_atual', 
         'tipo_governo', 'tipo_ministro_fazenda',
         'governo_postura_fiscal_influencia', 'influencia_duracao',
-        # Adicionar os atributos de alvo para que a simulação comece com eles corretos
         'alvo_inflacao_mensal', 'alvo_pib_crescimento_mensal', 'alvo_cambio_atual'
     ]
     for attr in attrs_to_copy:
@@ -125,46 +131,36 @@ def gerar_relatorio_previsao_data(estado_atual_real):
             for attr_name in dir(estado_sub_sim):
                 if attr_name.startswith('historico_'): setattr(estado_sub_sim, attr_name, [])
 
-            # --- LÓGICA DE SIMULAÇÃO CORRIGIDA ---
-            # 1. Fatores que afetam os alvos e o estado diretamente
             atualizar_divida_publica(estado_sub_sim) 
-            atualizar_fator_liquidez_bancaria(estado_sub_sim) # Ajusta-se gradualmente ao seu próprio alvo
+            atualizar_fator_liquidez_bancaria(estado_sub_sim) 
 
-            # 2. Calcular os ALVOS para os indicadores principais
-            atualizar_inflacao(estado_sub_sim)  # Define estado_sub_sim.alvo_inflacao_mensal
-            atualizar_pib(estado_sub_sim)       # Define estado_sub_sim.alvo_pib_crescimento_mensal
-            atualizar_cambio(estado_sub_sim)    # Define estado_sub_sim.alvo_cambio_atual
+            atualizar_inflacao(estado_sub_sim)
+            atualizar_pib(estado_sub_sim)       
+            atualizar_cambio(estado_sub_sim)    
             
-            # 3. Aplicar AJUSTE GRADUAL dos indicadores REAIS em direção aos seus ALVOS
-            # Inflação
             if estado_sub_sim.inflacao_atual_mensal < estado_sub_sim.alvo_inflacao_mensal:
                 estado_sub_sim.inflacao_atual_mensal = min(estado_sub_sim.inflacao_atual_mensal + PASSO_AJUSTE_INFLACAO_MENSAL_SIM, estado_sub_sim.alvo_inflacao_mensal)
             elif estado_sub_sim.inflacao_atual_mensal > estado_sub_sim.alvo_inflacao_mensal:
                 estado_sub_sim.inflacao_atual_mensal = max(estado_sub_sim.inflacao_atual_mensal - PASSO_AJUSTE_INFLACAO_MENSAL_SIM, estado_sub_sim.alvo_inflacao_mensal)
             estado_sub_sim.inflacao_atual_mensal = round(estado_sub_sim.inflacao_atual_mensal, 6)
 
-            # PIB
             if estado_sub_sim.pib_crescimento_atual_mensal < estado_sub_sim.alvo_pib_crescimento_mensal:
                 estado_sub_sim.pib_crescimento_atual_mensal = min(estado_sub_sim.pib_crescimento_atual_mensal + PASSO_AJUSTE_PIB_MENSAL_SIM, estado_sub_sim.alvo_pib_crescimento_mensal)
             elif estado_sub_sim.pib_crescimento_atual_mensal > estado_sub_sim.alvo_pib_crescimento_mensal:
                 estado_sub_sim.pib_crescimento_atual_mensal = max(estado_sub_sim.pib_crescimento_atual_mensal - PASSO_AJUSTE_PIB_MENSAL_SIM, estado_sub_sim.alvo_pib_crescimento_mensal)
             estado_sub_sim.pib_crescimento_atual_mensal = round(estado_sub_sim.pib_crescimento_atual_mensal, 6)
 
-            # Câmbio
             if estado_sub_sim.cambio_atual < estado_sub_sim.alvo_cambio_atual:
                 estado_sub_sim.cambio_atual = min(estado_sub_sim.cambio_atual + PASSO_AJUSTE_CAMBIO_SIM, estado_sub_sim.alvo_cambio_atual)
             elif estado_sub_sim.cambio_atual > estado_sub_sim.alvo_cambio_atual:
                 estado_sub_sim.cambio_atual = max(estado_sub_sim.cambio_atual - PASSO_AJUSTE_CAMBIO_SIM, estado_sub_sim.alvo_cambio_atual)
             estado_sub_sim.cambio_atual = round(estado_sub_sim.cambio_atual, 3)
             
-            # 4. Atualizar outros indicadores que dependem dos valores REAIS
             estado_sub_sim.taxa_desemprego_atual = atualizar_desemprego(estado_sub_sim)
             
-            # Atualizar expectativas dentro da simulação (simplificado)
             estado_sub_sim.expectativa_inflacao_mercado_mensal = (estado_sub_sim.meta_inflacao_anual / 12 * 0.4 + estado_sub_sim.inflacao_atual_mensal * 0.6) + random.uniform(-0.015/12, 0.015/12)
             estado_sub_sim.expectativa_inflacao_mercado_mensal = max(0.005/12, min(3.0/12, estado_sub_sim.expectativa_inflacao_mercado_mensal))
-            atualizar_expectativa_juros_longo_prazo(estado_sub_sim) # Usa o tom "neutro" padrão aqui
-            # --- FIM DA LÓGICA DE SIMULAÇÃO CORRIGIDA ---
+            atualizar_expectativa_juros_longo_prazo(estado_sub_sim)
             
             temp_infl_mes_sim.append(estado_sub_sim.inflacao_atual_mensal)
             temp_pib_mes_sim.append(estado_sub_sim.pib_crescimento_atual_mensal)
@@ -182,12 +178,11 @@ def gerar_relatorio_previsao_data(estado_atual_real):
         estado_base_para_mes_previsao.pib_crescimento_atual_mensal = avg_pib_sim_mes
         estado_base_para_mes_previsao.taxa_desemprego_atual = avg_des_sim_mes
         
-        # Recalcula os alvos para o estado base para o próximo mês da simulação
         atualizar_inflacao(estado_base_para_mes_previsao)
         atualizar_pib(estado_base_para_mes_previsao)
         atualizar_cambio(estado_base_para_mes_previsao)
         atualizar_fator_liquidez_bancaria(estado_base_para_mes_previsao)
-        atualizar_divida_publica(estado_base_para_mes_previsao) # Dívida também evolui na simulação base
+        atualizar_divida_publica(estado_base_para_mes_previsao)
         
         estado_base_para_mes_previsao.expectativa_inflacao_mercado_mensal = (estado_base_para_mes_previsao.meta_inflacao_anual / 12 * 0.4 + avg_infl_sim_mes * 0.6) + random.uniform(-0.015/12, 0.015/12)
         estado_base_para_mes_previsao.expectativa_inflacao_mercado_mensal = max(0.005/12, min(3.0/12, estado_base_para_mes_previsao.expectativa_inflacao_mercado_mensal))
@@ -218,7 +213,7 @@ def gerar_relatorio_previsao_data(estado_atual_real):
     return avg_inflacao_anual, avg_pib_anual, avg_desemprego_periodo, acuracia_percentual, inflacao_cenario_text, pib_cenario_text
 
 def evaluate_performance_final(estado, demissao_precoce=False):
-    # ... (função como na última versão completa, sem alterações aqui) ...
+    # (Copie o código original desta função aqui também, sem alterações)
     avg_inflacao = sum(estado.historico_inflacao) / len(estado.historico_inflacao) if estado.historico_inflacao else estado.inflacao_atual_mensal * 12
     avg_pib = sum(estado.historico_pib) / len(estado.historico_pib) if estado.historico_pib else estado.pib_crescimento_atual_mensal * 12
     avg_credibilidade = sum(estado.historico_credibilidade) / len(estado.historico_credibilidade) if estado.historico_credibilidade else estado.credibilidade_bc
