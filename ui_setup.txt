@@ -1,0 +1,272 @@
+# ui_setup.py
+
+import pygame # Necessário se usares pygame.Rect diretamente aqui, mas Button já encapsula
+from ui_elements import Button
+from config import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, FONT_LARGE, FONT_MEDIUM, FONT_SMALL,
+    GREEN_SUCCESS, RED_CRITICAL, ORANGE_WARNING, BLUE_INFO, PURPLE_ACTION,
+    LIGHT_GRAY, GRAY, WHITE # Adicionadas cores que podem ser usadas diretamente pelos botões
+)
+
+def create_main_menu_buttons():
+    buttons = {}
+    button_width = 250
+    button_height = 50
+    start_y = 250
+    spacing = 70
+    buttons["main_menu_start_game"] = Button(
+        (SCREEN_WIDTH - button_width) / 2, start_y, button_width, button_height,
+        "Iniciar Novo Jogo", FONT_LARGE, GREEN_SUCCESS, (60, 179, 113)
+    )
+    buttons["main_menu_instructions"] = Button(
+        (SCREEN_WIDTH - button_width) / 2, start_y + spacing, button_width, button_height,
+        "Instrucoes", FONT_LARGE, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["main_menu_exit_game"] = Button(
+        (SCREEN_WIDTH - button_width) / 2, start_y + 2 * spacing, button_width, button_height,
+        "Sair do Jogo", FONT_LARGE, RED_CRITICAL, (220, 20, 60)
+    )
+    return buttons
+
+def create_game_month_buttons():
+    buttons = {}
+    button_width_month_main = 170
+    button_height_month_main = 40
+    spacing_buttons_horizontal = 10
+    btn_x_left = (SCREEN_WIDTH / 2 - button_width_month_main - spacing_buttons_horizontal / 2)
+    btn_x_right = (SCREEN_WIDTH / 2 + spacing_buttons_horizontal / 2)
+    btn_width_full = (button_width_month_main * 2 + spacing_buttons_horizontal)
+
+    # As posições Y destes botões são definidas dinamicamente em draw_game_month_screen.
+    # Aqui definimos apenas a largura, altura e outros atributos. O x pode ser provisório ou ajustado lá.
+    buttons["month_alter_selic"] = Button(
+        btn_x_left, 0, button_width_month_main, button_height_month_main,
+        "1. Alterar SELIC", FONT_MEDIUM, PURPLE_ACTION, (153, 50, 204)
+    )
+    buttons["month_advance_month"] = Button(
+        btn_x_right, 0, button_width_month_main, button_height_month_main,
+        "2. Avancar Mes", FONT_MEDIUM, GREEN_SUCCESS, (60, 179, 113)
+    )
+    buttons["month_policy_decisions"] = Button(
+        (SCREEN_WIDTH - btn_width_full) / 2, 0, btn_width_full, button_height_month_main,
+        "3. Decisoes de Politica", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["month_reports_analysis"] = Button(
+        (SCREEN_WIDTH - btn_width_full) / 2, 0, btn_width_full, button_height_month_main,
+        "4. Relatorios e Analises", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["month_back_to_main_menu"] = Button(
+        (SCREEN_WIDTH - 200) / 2, SCREEN_HEIGHT - 45, 200, 40,
+        "Voltar ao Menu Principal", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    return buttons
+
+def create_instructions_buttons():
+    buttons = {}
+    buttons["instructions_back"] = Button(
+        (SCREEN_WIDTH - 200) / 2, SCREEN_HEIGHT - 60, 200, 40,
+        "Voltar ao Menu Principal", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    return buttons
+
+def create_actions_menu_buttons():
+    buttons = {}
+    button_width_actions = 300
+    button_height_actions = 40
+    start_y_actions = 100
+    spacing_actions = 50
+
+    buttons["actions_comunicado"] = Button(
+        (SCREEN_WIDTH - button_width_actions) / 2, start_y_actions, button_width_actions, button_height_actions,
+        "", FONT_MEDIUM, BLUE_INFO, (100, 149, 237) # Texto será definido dinamicamente
+    )
+    buttons["actions_discurso"] = Button(
+        (SCREEN_WIDTH - button_width_actions) / 2, start_y_actions + spacing_actions, button_width_actions, button_height_actions,
+        "", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["actions_reuniao_bc"] = Button(
+        (SCREEN_WIDTH - button_width_actions) / 2, start_y_actions + 2 * spacing_actions, button_width_actions, button_height_actions,
+        "", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["actions_flexibilizar"] = Button(
+        (SCREEN_WIDTH - button_width_actions) / 2, start_y_actions + 3 * spacing_actions, button_width_actions, button_height_actions,
+        "", FONT_MEDIUM, ORANGE_WARNING, (255, 165, 0)
+    )
+    buttons["actions_compulsorio"] = Button(
+        (SCREEN_WIDTH - button_width_actions) / 2, start_y_actions + 4 * spacing_actions, button_width_actions, button_height_actions,
+        "", FONT_MEDIUM, PURPLE_ACTION, (153, 50, 204)
+    )
+    buttons["actions_reuniao_ministro"] = Button(
+        (SCREEN_WIDTH - button_width_actions) / 2, start_y_actions + 5 * spacing_actions, button_width_actions, button_height_actions,
+        "", FONT_MEDIUM, PURPLE_ACTION, (153, 50, 204)
+    )
+    buttons["actions_back_to_game"] = Button(
+        (SCREEN_WIDTH - button_width_actions) / 2, start_y_actions + 6.5 * spacing_actions, button_width_actions, button_height_actions,
+        "Voltar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    return buttons
+
+def create_reports_menu_buttons():
+    buttons = {}
+    button_width_reports = 300
+    button_height_reports = 45
+    start_y_reports = 150
+    spacing_reports = 60
+
+    buttons["reports_status_bc"] = Button(
+        (SCREEN_WIDTH - button_width_reports) / 2, start_y_reports, button_width_reports, button_height_reports,
+        "1. Status do BC", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["reports_news_reports"] = Button(
+        (SCREEN_WIDTH - button_width_reports) / 2, start_y_reports + spacing_reports, button_width_reports, button_height_reports,
+        "2. Noticias e Relatorios", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["reports_view_graphs"] = Button(
+        (SCREEN_WIDTH - button_width_reports) / 2, start_y_reports + 2 * spacing_reports, button_width_reports, button_height_reports,
+        "3. Ver Graficos", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["reports_forecast_report"] = Button(
+        (SCREEN_WIDTH - button_width_reports) / 2, start_y_reports + 3 * spacing_reports, button_width_reports, button_height_reports,
+        "4. Relatorio de Previsao", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["reports_consult_advisors"] = Button(
+        (SCREEN_WIDTH - button_width_reports) / 2, start_y_reports + 4 * spacing_reports, button_width_reports, button_height_reports,
+        "5. Consultar Assessores", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["reports_back_to_game"] = Button(
+        (SCREEN_WIDTH - button_width_reports) / 2, start_y_reports + 6 * spacing_reports, button_width_reports, button_height_reports,
+        "Voltar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    return buttons
+
+def create_common_back_buttons(): # Botões "Voltar" que são comuns a várias telas de relatório/status
+    buttons = {}
+    common_back_y = SCREEN_HEIGHT - 60
+    common_back_width = 200
+    common_back_height = 40
+
+    buttons["back_from_status"] = Button(
+        (SCREEN_WIDTH - common_back_width) / 2, common_back_y, common_back_width, common_back_height,
+        "Voltar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    buttons["back_from_news"] = Button(
+        (SCREEN_WIDTH - common_back_width) / 2, common_back_y, common_back_width, common_back_height,
+        "Voltar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    buttons["back_from_graphs"] = Button(
+        (SCREEN_WIDTH - common_back_width) / 2, common_back_y, common_back_width, common_back_height,
+        "Voltar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    buttons["back_from_forecast"] = Button(
+        (SCREEN_WIDTH - common_back_width) / 2, common_back_y, common_back_width, common_back_height,
+        "Voltar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    buttons["back_from_advisors"] = Button(
+        (SCREEN_WIDTH - common_back_width) / 2, common_back_y, common_back_width, common_back_height,
+        "Voltar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    return buttons
+
+def create_game_over_buttons():
+    buttons = {}
+    buttons["game_over_back_to_main_menu"] = Button(
+        (SCREEN_WIDTH - 250) / 2, SCREEN_HEIGHT - 100, 250, 50, # Y ajustado um pouco para cima
+        "Voltar ao Menu Principal", FONT_LARGE, GREEN_SUCCESS, (60, 179, 113)
+    )
+    return buttons
+
+def create_selic_input_buttons():
+    buttons = {}
+    buttons["selic_confirm"] = Button(
+        (SCREEN_WIDTH - 200) / 2, SCREEN_HEIGHT - 150, 200, 50,
+        "Confirmar", FONT_LARGE, GREEN_SUCCESS, (60, 179, 113)
+    )
+    buttons["selic_cancel"] = Button(
+        (SCREEN_WIDTH - 200) / 2, SCREEN_HEIGHT - 80, 200, 50,
+        "Cancelar", FONT_LARGE, RED_CRITICAL, (220, 20, 60)
+    )
+    return buttons
+
+def create_selic_warning_buttons():
+    buttons = {}
+    selic_warn_btn_width = 160
+    selic_warn_btn_height = 40
+    # Posições Y e X são relativas ao popup, que é desenhado centralizado.
+    # O GameController ajustará as posições finais se necessário, ou draw_selic_warning_popup pode fazê-lo.
+    # Por agora, o importante é o tamanho, texto e cores.
+    buttons["selic_warning_confirm"] = Button(
+        (SCREEN_WIDTH / 2 - selic_warn_btn_width - 10), SCREEN_HEIGHT / 2 + 50, # Y provisório
+        selic_warn_btn_width, selic_warn_btn_height,
+        "Prosseguir", FONT_MEDIUM, ORANGE_WARNING, (255, 165, 0)
+    )
+    buttons["selic_warning_cancel"] = Button(
+        (SCREEN_WIDTH / 2 + 10), SCREEN_HEIGHT / 2 + 50, # Y provisório
+        selic_warn_btn_width, selic_warn_btn_height,
+        "Cancelar", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    return buttons
+
+def create_tone_selection_buttons():
+    buttons = {}
+    tone_button_width = 280
+    tone_button_height = 50
+    tone_start_y = 200
+    tone_spacing = 70
+
+    buttons["tone_hawkish"] = Button(
+        (SCREEN_WIDTH - tone_button_width) / 2, tone_start_y, tone_button_width, tone_button_height,
+        "Hawkish (Contracionista)", FONT_MEDIUM, ORANGE_WARNING, (255, 180, 50)
+    )
+    buttons["tone_dovish"] = Button(
+        (SCREEN_WIDTH - tone_button_width) / 2, tone_start_y + tone_spacing, tone_button_width, tone_button_height,
+        "Dovish (Expansionista)", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["tone_neutral"] = Button(
+        (SCREEN_WIDTH - tone_button_width) / 2, tone_start_y + 2 * tone_spacing, tone_button_width, tone_button_height,
+        "Neutro (Equilibrado)", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    buttons["tone_cancel"] = Button(
+        (SCREEN_WIDTH - tone_button_width) / 2, tone_start_y + 3.5 * tone_spacing, tone_button_width, tone_button_height,
+        "Cancelar", FONT_MEDIUM, RED_CRITICAL, (220, 60, 60)
+    )
+    return buttons
+
+def create_compulsorio_input_buttons():
+    buttons = {}
+    buttons["compulsorio_confirm"] = Button(
+        (SCREEN_WIDTH - 200) / 2, SCREEN_HEIGHT - 150, 200, 50,
+        "Confirmar", FONT_LARGE, GREEN_SUCCESS, (60, 179, 113)
+    )
+    buttons["compulsorio_cancel"] = Button(
+        (SCREEN_WIDTH - 200) / 2, SCREEN_HEIGHT - 80, 200, 50,
+        "Cancelar", FONT_LARGE, RED_CRITICAL, (220, 20, 60)
+    )
+    return buttons
+
+def create_minister_submenu_buttons(): # Botões para o submenu da Reunião com Ministro
+    buttons = {}
+    submenu_btn_width = 320
+    submenu_btn_height = 45
+    # As posições Y serão ajustadas pela função draw_reuniao_ministro_submenu em game_screens.py
+    # ou podem ser definidas aqui se forem fixas em relação ao topo da tela do submenu.
+    # Por enquanto, o Y é provisório (0), a função de desenho irá posicioná-los.
+    submenu_start_y = 0 # Será ajustado pela função de desenho
+    submenu_spacing = 60
+
+    buttons["reuniao_sugerir_corte"] = Button(
+        (SCREEN_WIDTH - submenu_btn_width) / 2, submenu_start_y, submenu_btn_width, submenu_btn_height,
+        "1. Sugerir Corte de Gastos / Austeridade", FONT_MEDIUM, ORANGE_WARNING, (255, 180, 50)
+    )
+    buttons["reuniao_sugerir_aumento"] = Button(
+        (SCREEN_WIDTH - submenu_btn_width) / 2, submenu_start_y + submenu_spacing, submenu_btn_width, submenu_btn_height,
+        "2. Sugerir Aumento de Investimentos / Estímulo", FONT_MEDIUM, BLUE_INFO, (100, 149, 237)
+    )
+    buttons["reuniao_discutir_cenario"] = Button(
+        (SCREEN_WIDTH - submenu_btn_width) / 2, submenu_start_y + 2 * submenu_spacing, submenu_btn_width, submenu_btn_height,
+        "3. Discutir Cenário (Postura Neutra)", FONT_MEDIUM, LIGHT_GRAY, GRAY
+    )
+    buttons["reuniao_cancelar_pauta"] = Button(
+        (SCREEN_WIDTH - submenu_btn_width) / 2, submenu_start_y + 3.5 * submenu_spacing, submenu_btn_width, submenu_btn_height,
+        "4. Cancelar / Voltar ao Menu de Ações", FONT_MEDIUM, RED_CRITICAL, (220, 60, 60)
+    )
+    return buttons
